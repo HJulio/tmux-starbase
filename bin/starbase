@@ -1,0 +1,97 @@
+#!/bin/bash
+# starbase: brings up the tmux workspaces on this machine (one session per workspace, one window per
+# tab) and attaches. Safe to run at any time.
+#
+#   tmux already has sessions  -> nothing is created, it only attaches.
+#   tmux is empty (reboot)     -> restores the last layout saved by tmux-resurrect
+#                                 (tmux-continuum saves it every few minutes).
+#   empty and nothing saved    -> creates the starter layout from ~/.config/starbase/workspaces.sh.
+#
+# Agents are never started automatically: after a restore, each tab that was running Claude gets
+# its command typed and waits for Enter. Resuming a conversation that is still open somewhere else
+# forks its history.
+#
+# From another machine: ssh -t <this-host> starbase   (see client/ in the repo)
+. "${STARBASE_HOME:-$HOME/.tmux-starbase}/bin/lib.sh"
+
+# TMUX_CMD="tmux -L test" and STARBASE_SNAPSHOTS=... run it against a throwaway server
+T=${TMUX_CMD:-tmux}
+CONFIG=${STARBASE_CONFIG:-$HOME/.config/starbase}
+SAVE=${STARBASE_SNAPSHOTS:-$HOME/.local/state/starbase/snapshots}/last
+RESTORE=$STARBASE_HOME/plugins/tmux-resurrect/scripts/restore.sh
+WS=""
+COLORS=""
+CREATE=0
+
+# ws <name> <color> -> selects the workspace for the tab calls that follow; the color is applied to
+# any session with that name, restored or created
+ws() { WS=$1; COLORS="$COLORS$1 $2
+"; }
+
+# tab <name> <cwd> [command] -> starter layout only: adds the tab, typing the command without running it
+tab() {
+  [ "$CREATE" = 1 ] || return 0
+  if ! $T has-session -t "=$WS" 2>/dev/null; then
+    $T new-session -d -s "$WS" -n "$1" -c "$2"
+  else
+    $T new-window -d -t "=$WS:" -n "$1" -c "$2"
+  fi
+  [ -n "$3" ] && $T send-keys -t "=$WS:=$1" "$3"
+}
+
+# Rebuilds sessions, windows, names, splits and directories from the last save. Then, reading the
+# same file: types the Claude command into the panes that were running it, and closes the panes
+# that were sidebars (they come back as empty shells; the sidebars reopen from the Ctrl-b menu).
+restore_saved() {
+  $T new-session -d -s _boot -c "$HOME"
+  $T run-shell "$RESTORE" >/dev/null 2>&1
+  TMUX_CMD="$T" /usr/bin/python3 - "$SAVE" <<'PY'
+import os, re, subprocess, sys
+
+tmux = os.environ["TMUX_CMD"].split()
+sidebars = []
+rows = [line.rstrip("\n").split("\t") for line in open(sys.argv[1], encoding="utf-8", errors="replace")]
+# conversation ids recorded per pane by the Claude hook (lines added by save-claude-sessions.sh)
+recorded = {tuple(f[1:4]): f[4] for f in rows if f[0] == "claude" and len(f) == 5}
+for f in rows:
+    if f[0] != "pane" or len(f) < 11:
+        continue
+    session, window, pane, title, command, full = f[1], f[2], f[5], f[6], f[9], f[10][1:]
+    target = f"={session}:{window}.{pane}"
+    if title == "Sidebar" or (command == "nvim" and "nvim_tree_remote" in full):
+        sidebars.append((session, int(window), int(pane), target))
+    elif command == "claude":
+        # drop the binary path and the inline settings blobs some launchers add
+        args = re.sub(r"--settings \{.*\}\}|--mcp-config=\S+", "", full).split()[1:]
+        auto = " --permission-mode auto" if "--permission-mode auto" in full else ""
+        if (session, window, pane) in recorded:
+            # the id the hook saw last; it is newer than the launch command after a /clear
+            typed = "claude --resume " + recorded[(session, window, pane)] + auto
+        elif re.search(r"--resume [0-9a-f-]{36}", " ".join(args)):
+            typed = "claude " + " ".join(args)  # started with an explicit conversation id: same flags again
+        else:
+            # no id on record (an initial prompt would start a new conversation): open the picker instead
+            typed = "claude --resume" + auto
+        subprocess.run(tmux + ["send-keys", "-t", target, typed])
+# highest pane index first, so killing one does not renumber the ones still to kill
+for *_, target in sorted(sidebars, reverse=True):
+    subprocess.run(tmux + ["kill-pane", "-t", target], stderr=subprocess.DEVNULL)
+PY
+  $T kill-session -t "=_boot" 2>/dev/null
+}
+
+if ! $T list-sessions >/dev/null 2>&1; then
+  if [ -e "$SAVE" ]; then restore_saved; else CREATE=1; fi
+fi
+
+# Workspace colors (always applied) and the starter layout (only when nothing was saved).
+[ -f "$CONFIG/workspaces.sh" ] && . "$CONFIG/workspaces.sh"
+# no workspaces file, or one without tabs: start with a single workspace
+$T list-sessions >/dev/null 2>&1 || $T new-session -d -s Home -c "$HOME"
+
+printf '%s' "$COLORS" | while read -r name color; do
+  $T has-session -t "=$name" 2>/dev/null && $T set -t "=$name:" @ws_color "$color"
+done
+
+# from a terminal outside tmux, finish by attaching (-u: force UTF-8, ssh commands carry no locale)
+if [ -t 0 ] && [ -z "$TMUX" ]; then exec $T -u attach; fi

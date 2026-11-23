@@ -1,0 +1,61 @@
+diff --git a/scripts/ui/sidebar_ui_lib/render.py b/scripts/ui/sidebar_ui_lib/render.py
+index b63916c..c962824 100644
+--- a/scripts/ui/sidebar_ui_lib/render.py
++++ b/scripts/ui/sidebar_ui_lib/render.py
+@@ -16,6 +16,10 @@ from .tree import find_selected_row_index, render_rows, truncate_line
+ COLOR_PAIR_SESSION = 1
+ COLOR_PAIR_WINDOW = 2
+ COLOR_PAIR_PANE = 3
++# local: tree lines in a muted color instead of the terminal's default foreground
++COLOR_PAIR_TREE = 4
++TREE_LINE_HEX = "4a5a78"
++_tree_attr = 0
+ DEFAULT_COLOR_FG = "ffffff"
+ _HEX_COLOR_RE = re.compile(r"#([0-9a-fA-F]{6})")
+ _CUBE_VALUES = [0, 95, 135, 175, 215, 255]
+@@ -180,9 +184,12 @@ def init_sidebar_colors() -> tuple[int, int, int, int]:
+     curses.init_pair(COLOR_PAIR_SESSION, _define_color(240, session_hex), -1)
+     curses.init_pair(COLOR_PAIR_WINDOW, _define_color(241, window_hex), -1)
+     curses.init_pair(COLOR_PAIR_PANE, _define_color(242, pane_hex), -1)
++    global _tree_attr
++    curses.init_pair(COLOR_PAIR_TREE, _define_color(243, TREE_LINE_HEX), -1)
++    _tree_attr = curses.color_pair(COLOR_PAIR_TREE)
+     return (
+         curses.A_BOLD,
+-        curses.color_pair(COLOR_PAIR_SESSION),
++        curses.color_pair(COLOR_PAIR_SESSION) | curses.A_BOLD,
+         curses.color_pair(COLOR_PAIR_WINDOW),
+         curses.color_pair(COLOR_PAIR_PANE),
+     )
+@@ -329,7 +336,8 @@ def _draw_screen(
+         is_selected = selected_row is not None and row_idx == selected_row
+         is_match = bool(search_matches) and row_idx in search_matches
+         label_start = _label_start(line)
+-        stdscr.addnstr(y, 0, line[:label_start], width)
++        # the selected row keeps the default color so its marker stays visible
++        stdscr.addnstr(y, 0, line[:label_start], width, 0 if is_selected else _tree_attr)
+         remaining = width - label_start
+         if remaining > 0 and label_start < len(line):
+             label = line[label_start:]
+diff --git a/scripts/ui/sidebar_ui_lib/tree.py b/scripts/ui/sidebar_ui_lib/tree.py
+index 50d75cd..4daf68c 100644
+--- a/scripts/ui/sidebar_ui_lib/tree.py
++++ b/scripts/ui/sidebar_ui_lib/tree.py
+@@ -136,7 +136,7 @@ def load_tree() -> list[dict]:
+     for session_index, session in enumerate(session_items):
+         session_last = session_index == len(session_items) - 1
+         session_prefix = "   " if session_last else "│  "
+-        rows.append({"kind": "session", "session": session["name"], "text": f"{'└─' if session_last else '├─'} {session['name']}"})
++        rows.append({"kind": "session", "session": session["name"], "text": f"{'└─' if session_last else '├─'} \uf07b  {session['name']}"})
+ 
+         windows = list(session["windows"].values())
+         for window_index, window in enumerate(windows):
+@@ -159,7 +159,7 @@ def load_tree() -> list[dict]:
+                 "kind": "window",
+                 "session": session["name"],
+                 "window": window["id"],
+-                "text": f"{session_prefix}{'└─' if window_last else '├─'} {display_name}",
++                "text": f"{session_prefix}{'└─' if window_last else '├─'} \uf120  {display_name}",
+             }
+             if hide_panes and not visible_panes:
+                 window_row["pane_id"] = window["id"]

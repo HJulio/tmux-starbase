@@ -1,0 +1,14 @@
+# Add to ~/.ssh/config on each machine you connect FROM.
+
+Host my-starbase
+  HostName my-starbase.example.ts.net
+  User me
+  # Notice a dead link within a minute instead of leaving the window frozen.
+  ServerAliveInterval 20
+  ServerAliveCountMax 3
+  # Share one connection: authenticate once; later windows, scp and port forwards reuse it.
+  # Kept 10 minutes after the last session closes.
+  # If it ever gets stuck after a network change: ssh -O exit my-starbase
+  ControlMaster auto
+  ControlPath ~/.ssh/cm-%C
+  ControlPersist 10m

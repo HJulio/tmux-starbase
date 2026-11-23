@@ -1,0 +1,23 @@
+#!/bin/bash
+# preview [file|dir] -> serves it over HTTP on this Mac and prints how to open it from another one.
+# Listens on localhost only; other machines reach it through an ssh tunnel, so it also works where
+# only port 22 is reachable. Replace the host in the printed line with your ssh name for this machine.
+target=${1:-.}
+[ -e "$target" ] || { echo "preview: $target not found" >&2; exit 1; }
+if [ -d "$target" ]; then dir=$target; file=""; else dir=$(dirname "$target"); file=$(basename "$target"); fi
+
+port=8000
+while /usr/bin/nc -z 127.0.0.1 "$port" 2>/dev/null; do port=$((port + 1)); done
+
+cat <<EOF
+
+  Serving $dir   (Ctrl+C to stop)
+
+  From another machine:
+    ssh -fN -L $port:localhost:$port $(hostname -s) && open http://localhost:$port/$file
+
+  On this machine:
+    http://localhost:$port/$file
+
+EOF
+exec /usr/bin/python3 -m http.server "$port" --bind 127.0.0.1 --directory "$dir"

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 200" width="780" height="200" role="img" aria-label="tmux-starbase">
+  <title>tmux-starbase</title>
+  <rect width="780" height="200" rx="18" fill="#141d2b"/>
+  <!-- stars -->
+  <g fill="#a4b1cd">
+    <circle cx="246" cy="34" r="1.4"/><circle cx="318" cy="158" r="1.2"/><circle cx="402" cy="26" r="1"/>
+    <circle cx="486" cy="166" r="1.5"/><circle cx="560" cy="38" r="1.2"/><circle cx="640" cy="150" r="1"/>
+    <circle cx="676" cy="56" r="1.6"/><circle cx="40" cy="30" r="1.2"/><circle cx="196" cy="170" r="1.3"/>
+  </g>
+  <!-- the station: a ring, three docking arms and a core that is a terminal prompt -->
+  <g transform="translate(110 100)">
+    <circle r="66" fill="none" stroke="#89b4fa" stroke-width="6"/>
+    <circle r="66" fill="none" stroke="#141d2b" stroke-width="8" stroke-dasharray="5 29.56"/>
+    <g stroke="#89b4fa" stroke-width="5" stroke-linecap="round">
+      <line x1="0" y1="-30" x2="0" y2="-63"/>
+      <line x1="26" y1="15" x2="54.6" y2="31.5"/>
+      <line x1="-26" y1="15" x2="-54.6" y2="31.5"/>
+    </g>
+    <circle r="31" fill="#1c2a3f" stroke="#9fef00" stroke-width="4"/>
+    <path d="M-13 -9 L-1 0 L-13 9" fill="none" stroke="#9fef00" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="3" y1="10" x2="15" y2="10" stroke="#9fef00" stroke-width="5" stroke-linecap="round"/>
+    <!-- a ship docked, and one that needs you -->
+    <circle cx="0" cy="-66" r="7" fill="#9fef00"/>
+    <circle cx="57.2" cy="33" r="7" fill="#ff6b6b"/>
+    <circle cx="-57.2" cy="33" r="7" fill="#cba6f7"/>
+  </g>
+  <text x="212" y="96" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="54" font-weight="700" fill="#dfe5ee">tmux<tspan fill="#9fef00">-starbase</tspan></text>
+  <text x="214" y="136" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#a4b1cd">one machine, every workspace, from anywhere</text>
+</svg>
