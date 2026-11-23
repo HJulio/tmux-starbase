@@ -6,9 +6,6 @@ plain terminal, local or over SSH, shows exactly the same thing, side panels inc
 
 ![The main view: session tree, an agent at work, file tree](docs/images/hero.png)
 
-> The screenshots are a demo session with made-up projects and mock agent screens. The place
-> names are a fan's nod to World of Warcraft, which belongs to Blizzard Entertainment.
-
 ## Why
 
 I run several coding agents at once on a Mac that never sleeps, and I move around: desk, laptop,
