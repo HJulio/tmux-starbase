@@ -59,8 +59,12 @@ The fix was to put everything inside tmux:
 - A terminal with a [Nerd Font](https://www.nerdfonts.com) (the bar and the trees use its icons)
   and true color. I use [Ghostty](https://ghostty.org); any modern terminal should do.
 
-The installer brings the rest: `tmux`, `bash` 5, `neovim` (it draws the file tree) and `fzf`,
-plus three optional extras, `fresh-editor`, `lazygit` and `macmon`.
+The installer brings the rest with Homebrew: `tmux`, `neovim` (it draws the file tree), `fzf` and a
+current `bash`, plus three optional extras, `fresh-editor`, `lazygit` and `macmon`.
+
+Your shell does not change. The newer `bash` is only there to run the session tree plugin's
+scripts, which need version 4 or later while macOS ships 3.2. It is installed next to the system
+one; your tabs keep opening zsh, fish or whatever you use.
 
 ## Install
 
